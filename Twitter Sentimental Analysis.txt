@@ -1,0 +1,165 @@
+#connect all libraries
+library(twitteR)
+library(ROAuth)
+library(plyr)
+library(dplyr)
+library(stringr)
+library(ggplot2)
+#connect to API
+consumerKey <-'Z96FzkOKPtyJSHz5zBMHA4cSK'#put the Consumer Key from Twitter Application
+consumerSecret <-'ZT2nnm3yYFcfifs5FlQpilaode6doRo5h0zqgozB5Mmn3sf9In' #put the Consumer Secret from
+accesstoken <-'1361940235-OLM6iyBtX6t3jVTRSMpbjVh25F81671Jl6XqQnv'
+accesstokensecret <-'pzX0ruwvm7FowrSSrD7g0zQuumM6PZjajUUZ2JPtoQqa8'
+setup_twitter_oauth(consumerKey, consumerSecret, accesstoken, accesstokensecret)
+download.file(url="http://curl.haxx.se/ca/cacert.pem", destfile="cacert.pem")
+a <- readline(prompt="Enter name of 1 opponent: ")
+b <- readline(prompt="Enter name of 2 opponent: ")
+
+tweets = searchTwitter(a, n=1000)
+tweets
+Tweets.text = lapply(tweets,function(t)t$getText())
+pos = scan('D:/positive-words.txt', what='character', comment.char=';')
+neg = scan('D:/negative-words.txt', what='character', comment.char=';')
+pos.words <- c(pos, 'upgrade')
+neg.words <- c(neg, 'wtf', 'wait', 'waiting', 'epicfail')
+
+
+df <- twListToDF(tweets)
+df <- df[, order(names(df))]
+df$created <- strftime(df$created, '%Y-%m-%d')
+write.csv(df, 'D:/stack.csv', row.names=F)
+
+
+score.sentiment <- function(sentences, pos.words, neg.words, .progress='none')
+{
+  require(plyr)
+  require(stringr)
+  scores <- laply(sentences, function(sentence, pos.words, neg.words){
+    sentence <- gsub('[[:punct:]]', "", sentence)
+    sentence <- gsub('[[:cntrl:]]', "", sentence)
+    sentence <- gsub('\\d+', "", sentence)
+    sentence <- tolower(sentence)
+    word.list <- str_split(sentence, '\\s+')
+    words <- unlist(word.list)
+    pos.matches <- match(words, pos.words)
+    neg.matches <- match(words, neg.words)
+    pos.matches <- !is.na(pos.matches)
+    neg.matches <- !is.na(neg.matches)
+    score <- sum(pos.matches) - sum(neg.matches)
+    return(score)
+  }, pos.words, neg.words, .progress=.progress)
+  scores.df <- data.frame(score=scores, text=sentences)
+  return(scores.df)
+}
+
+
+Dataset <-read.csv ('D://stack.csv')
+Dataset$text = as.factor(Dataset$text)
+scores <- score.sentiment(Dataset$text, pos.words, neg.words, .progress='text')
+write.csv(scores,'D:/scores.csv') #save evaluation results
+
+
+stat <- scores
+stat$created <- Dataset$created
+stat <- mutate(stat, tweet=ifelse(stat$score > 0, 'positive', ifelse(stat$score < 0, 'negative', 'neutral')))
+final <- group_by(stat, tweet)
+final <- summarise(final, number=n())
+write.csv(final ,'D:/opin.csv') 
+
+
+library(plotrix)
+mydataa = read.csv("D:/opin.csv")
+# Pie Chart with Percentages
+slices <- c(mydataa$number) 
+lbls <- c("negative", "neutral", "positive")
+pct <- round(slices/sum(slices)*100)
+lbls <- paste(lbls, pct) # add percents to labels 
+lbls <- paste(lbls,"%",sep="") # ad % to labels 
+pie(slices,labels = lbls, col=rainbow(length(lbls)),
+    main="analysis of 1 opponent ")
+
+
+
+
+
+
+
+tweeets = searchTwitter(b, n=1000)
+Tweeets.text = lapply(tweeets,function(t)t$getText())
+df <- twListToDF(tweeets)
+df <- df[, order(names(df))]
+df$created <- strftime(df$created, '%Y-%m-%d')
+write.csv(df, 'D:/stackk.csv', row.names=F)
+
+score.sentiment <- function(sentences, pos.words, neg.words, .progress='none')
+{
+  require(plyr)
+  require(stringr)
+  scores <- laply(sentences, function(sentence, pos.words, neg.words){
+    sentence <- gsub('[[:punct:]]', "", sentence)
+    sentence <- gsub('[[:cntrl:]]', "", sentence)
+    sentence <- gsub('\\d+', "", sentence)
+    sentence <- tolower(sentence)
+    word.list <- str_split(sentence, '\\s+')
+    words <- unlist(word.list)
+    pos.matches <- match(words, pos.words)
+    neg.matches <- match(words, neg.words)
+    pos.matches <- !is.na(pos.matches)
+    neg.matches <- !is.na(neg.matches)
+    score <- sum(pos.matches) - sum(neg.matches)
+    return(score)
+  }, pos.words, neg.words, .progress=.progress)
+  scores.df <- data.frame(score=scores, text=sentences)
+  return(scores.df)
+}
+
+
+
+Datasett <-read.csv ('D://stackk.csv')
+Datasett$text = as.factor(Datasett$text)
+scoress <- score.sentiment(Datasett$text, pos.words, neg.words, .progress='text')
+write.csv(scoress,'D:/scoress.csv') #save evaluation results
+
+
+
+
+statt <- scoress
+statt$created <- Datasett$created
+statt <- mutate(statt, tweeet=ifelse(statt$score > 0, 'positive', ifelse(statt$score < 0, 'negative', 'neutral')))
+finall <- group_by(statt, tweeet)
+finall <- summarise(finall, number=n())
+write.csv(finall ,'D:/opinn.csv')
+
+
+
+
+library(plotrix)
+mydata = read.csv("D:/opinn.csv")
+# Pie Chart with Percentages
+slices <- c(mydata$number) 
+lbls <- c("negative", "neutral", "positive")
+pct <- round(slices/sum(slices)*100)
+lbls <- paste(lbls, pct) # add percents to labels 
+lbls <- paste(lbls,"%",sep="") # ad % to labels 
+pie(slices,labels = lbls, col=rainbow(length(lbls)),
+    main="analysis of 2 opponent ")
+
+
+
+
+
+
+
+library(plotrix)
+mydataa = read.csv("D:/opin.csv")
+mydata = read.csv("D:/opinn.csv")
+
+# Pie Chart with Percentages
+slices <- c(mydataa$number,mydata$number) 
+lbls <- c("negative2","neutral2", "positive2","negative1","neutral1","positive1")
+pct <- round(slices/sum(slices)*100)
+lbls <- paste(lbls, pct) # add percents to labels 
+lbls <- paste(lbls,"%",sep="") # ad % to labels 
+pie3D(slices,labels = lbls, col=rainbow(length(lbls)),
+    main="analysis of both opponent ")
+
